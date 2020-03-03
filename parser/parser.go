@@ -173,7 +173,7 @@ func (parser *Parser) ParseDeclaration() (*css.Declaration, error) {
 
 			result.Value = strings.TrimSpace(curValue)
 
-			if parser.tokenChar(";") {
+			for parser.tokenChar(";") {
 				parser.shiftToken()
 			}
 
@@ -201,6 +201,9 @@ func (parser *Parser) parseAtRule() (*css.Rule, error) {
 	for parser.tokenParsable() {
 		if parser.tokenChar(";") {
 			parser.shiftToken()
+			for parser.tokenChar(";") {
+				parser.shiftToken()
+			}
 
 			// finished
 			break
