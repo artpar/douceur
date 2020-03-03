@@ -20,7 +20,8 @@ const (
 
 // At Rules than have Rules inside their block instead of Declarations
 var atRulesWithRulesBlock = []string{
-	"@document", "@font-feature-values", "@keyframes", "@media", "@supports", "@-webkit-keyframes",
+	"@document", "@font-feature-values", "@keyframes", "@media",
+	"@supports", "@-webkit-keyframes", "@-o-keyframes", "@-ms-keyframes","@-moz-keyframes", "@-webkit-keyframes",
 }
 
 // Rule represents a parsed CSS rule
