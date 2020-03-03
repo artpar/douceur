@@ -69,6 +69,9 @@ func (kind RuleKind) String() string {
 // EmbedsRules returns true if this rule embeds another rules
 func (rule *Rule) EmbedsRules() bool {
 	if rule.Kind == AtRule {
+		if rule.Name[0:2] == "@-" {
+			return true
+		}
 		for _, atRuleName := range atRulesWithRulesBlock {
 			if rule.Name == atRuleName {
 				return true
