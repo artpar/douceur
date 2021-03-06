@@ -139,7 +139,8 @@ func (parser *Parser) ParseDeclarations() ([]*css.Declaration, error) {
 		} else {
 			declaration, err := parser.ParseDeclaration()
 			if err != nil {
-				return result, err
+				continue
+				//return result, err
 			}
 
 			result = append(result, declaration)
