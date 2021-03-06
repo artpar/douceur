@@ -20,8 +20,27 @@ const (
 
 // At Rules than have Rules inside their block instead of Declarations
 var atRulesWithRulesBlock = []string{
-	"@document", "@font-feature-values", "@keyframes", "@media", "@supports", "@page",
-	"@supports", "@-webkit-keyframes", "@-o-keyframes", "@-ms-keyframes", "@-moz-keyframes", "@-webkit-keyframes",
+	"@document", "@font-feature-values", "@keyframes", "@media", "@supports", "@-webkit-keyframes", "@-moz-keyframes", "@-o-keyframes",
+	"@page",  "@supports", "@-ms-keyframes",
+}
+
+// Selector represents a parsed CSS selector.
+type Selector struct {
+	Value  string
+	Line   int
+	Column int
+}
+
+func (selector Selector) String() string {
+	return selector.str(false)
+}
+
+func (selector Selector) str(diff bool) string {
+	if diff {
+		return fmt.Sprintf("Selector: %s (%d, %d)", selector.Value, selector.Line, selector.Column)
+	} else {
+		return selector.Value
+	}
 }
 
 // Rule represents a parsed CSS rule
@@ -35,7 +54,7 @@ type Rule struct {
 	Prelude string
 
 	// Qualified Rule selectors parsed from prelude
-	Selectors []string
+	Selectors []*Selector
 
 	// Style properties
 	Declarations []*Declaration
@@ -94,7 +113,9 @@ func (rule *Rule) Equal(other *Rule) bool {
 	}
 
 	for i, sel := range rule.Selectors {
-		if sel != other.Selectors[i] {
+		if (sel.Value != other.Selectors[i].Value) ||
+			(sel.Line != other.Selectors[i].Line) ||
+			(sel.Column != other.Selectors[i].Column) {
 			return false
 		}
 	}
@@ -131,11 +152,11 @@ func (rule *Rule) Diff(other *Rule) []string {
 	}
 
 	if len(rule.Selectors) != len(other.Selectors) {
-		result = append(result, fmt.Sprintf("Selectors: %v | %v", strings.Join(rule.Selectors, ", "), strings.Join(other.Selectors, ", ")))
+		result = append(result, fmt.Sprintf("Selectors: %v | %v", strings.Join(rule.Sel(), ", "), strings.Join(other.Sel(), ", ")))
 	} else {
 		for i, sel := range rule.Selectors {
 			if sel != other.Selectors[i] {
-				result = append(result, fmt.Sprintf("Selector: \"%s\" | \"%s\"", sel, other.Selectors[i]))
+				result = append(result, fmt.Sprintf("Selector: \"%s\" | \"%s\"", sel.str(true), other.Selectors[i].str(true)))
 			}
 		}
 	}
@@ -145,7 +166,7 @@ func (rule *Rule) Diff(other *Rule) []string {
 	} else {
 		for i, decl := range rule.Declarations {
 			if !decl.Equal(other.Declarations[i]) {
-				result = append(result, fmt.Sprintf("Declaration: \"%s\" | \"%s\"", decl.String(), other.Declarations[i].String()))
+				result = append(result, fmt.Sprintf("Declaration: \"%s\" | \"%s\"", decl.Str(true), other.Declarations[i].Str(true)))
 			}
 		}
 	}
@@ -156,7 +177,7 @@ func (rule *Rule) Diff(other *Rule) []string {
 
 		for i, rule := range rule.Rules {
 			if !rule.Equal(other.Rules[i]) {
-				result = append(result, fmt.Sprintf("Rule: \"%s\" | \"%s\"", rule.String(), other.Rules[i].String()))
+				result = append(result, fmt.Sprintf("Rule: \"%s\" | \"%s\"", rule.str(true), other.Rules[i].str(true)))
 			}
 		}
 	}
@@ -166,10 +187,15 @@ func (rule *Rule) Diff(other *Rule) []string {
 
 // Returns the string representation of a rule
 func (rule *Rule) String() string {
+	return rule.str(false)
+}
+
+// Returns the string representation of a rule
+func (rule *Rule) str(diff bool) string {
 	result := ""
 
 	if rule.Kind == QualifiedRule {
-		for i, sel := range rule.Selectors {
+		for i, sel := range rule.Sel() {
 			if i != 0 {
 				result += ", "
 			}
@@ -194,11 +220,11 @@ func (rule *Rule) String() string {
 
 		if rule.EmbedsRules() {
 			for _, subRule := range rule.Rules {
-				result += fmt.Sprintf("%s%s\n", rule.indent(), subRule.String())
+				result += fmt.Sprintf("%s%s\n", rule.indent(), subRule.str(diff))
 			}
 		} else {
 			for _, decl := range rule.Declarations {
-				result += fmt.Sprintf("%s%s\n", rule.indent(), decl.String())
+				result += fmt.Sprintf("%s%s\n", rule.indent(), decl.Str(diff))
 			}
 		}
 
@@ -210,22 +236,18 @@ func (rule *Rule) String() string {
 
 // Returns identation spaces for declarations and rules
 func (rule *Rule) indent() string {
-	result := ""
-
-	for i := 0; i < ((rule.EmbedLevel + 1) * indentSpace); i++ {
-		result += " "
-	}
-
-	return result
+	return strings.Repeat(" ", (rule.EmbedLevel+1)*indentSpace)
 }
 
 // Returns identation spaces for end of block character
 func (rule *Rule) indentEndBlock() string {
-	result := ""
+	return strings.Repeat(" ", rule.EmbedLevel*indentSpace)
+}
 
-	for i := 0; i < (rule.EmbedLevel * indentSpace); i++ {
-		result += " "
+func (rule *Rule) Sel() []string {
+	selectors := []string{}
+	for _, s := range rule.Selectors {
+		selectors = append(selectors, s.Value)
 	}
-
-	return result
+	return selectors
 }
