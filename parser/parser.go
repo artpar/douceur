@@ -139,6 +139,7 @@ func (parser *Parser) ParseDeclarations() ([]*css.Declaration, error) {
 		} else {
 			declaration, err := parser.ParseDeclaration()
 			if err != nil {
+				parser.shiftToken()
 				continue
 				//return result, err
 			}
